@@ -360,8 +360,10 @@ paint_region(session_t *ps, const struct managed_win *w, int x, int y, int wid, 
 	const bool neg = (w && w->invert_color);
 
 	render(ps, x, y, dx, dy, wid, hei, fullwid, fullhei, opacity, argb, neg,
-	       (w ? w->corner_radius : 0), pict,
-	       (w ? w->paint.ptex : ps->root_tile_paint.ptex), reg_paint,
+	       (w && !c2_match(ps, w, ps->o.rounded_corners_blacklist, NULL)
+	            ? w->corner_radius
+	            : 0),
+	       pict, (w ? w->paint.ptex : ps->root_tile_paint.ptex), reg_paint,
 #ifdef CONFIG_OPENGL
 	       w ? &ps->glx_prog_win : NULL
 #else
@@ -858,7 +860,10 @@ win_blur_background(session_t *ps, struct managed_win *w, xcb_render_picture_t t
 	const int16_t y = w->g.y;
 	const auto wid = to_u16_checked(w->widthb);
 	const auto hei = to_u16_checked(w->heightb);
-	const int cr = w ? w->corner_radius : 0;
+	// TODO(sdhand): This really needs refactoring into a function
+	const int cr = w && !c2_match(ps, w, ps->o.rounded_corners_blacklist, NULL)
+	                   ? w->corner_radius
+	                   : 0;
 
 	double factor_center = 1.0;
 	// Adjust blur strength according to window opacity, to make it appear
