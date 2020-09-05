@@ -53,9 +53,19 @@ static const int WIN_GET_LEADER_MAX_RECURSION = 20;
 static const int ROUNDED_PIXELS = 1;
 static const double ROUNDED_PERCENT = 0.05;
 
+/// Generate a "no corners" region function, from a function that returns the
+/// region via a region_t pointer argument. Corners of the window will be removed from
+/// the returned region.
+/// Function signature has to be (win *, region_t *)
+#define gen_without_corners(fun)                                                         \
+	void fun##_without_corners(const struct managed_win *w, region_t *res) {         \
+		fun(w, res);                                                             \
+		win_region_remove_corners(w, res);                                       \
+	}
+
 /// Generate a "return by value" function, from a function that returns the
 /// region via a region_t pointer argument.
-/// Function signature has to be (win *, region_t *)
+/// Function signature has to be (win *)
 #define gen_by_val(fun)                                                                  \
 	region_t fun##_by_val(const struct managed_win *w) {                             \
 		region_t ret;                                                            \
@@ -190,8 +200,12 @@ void win_get_region_noframe_local(const struct managed_win *w, region_t *res) {
 	pixman_region32_fini(res);
 	if (width > 0 && height > 0) {
 		pixman_region32_init_rect(res, x, y, (uint)width, (uint)height);
+	} else {
+		pixman_region32_init(res);
 	}
 }
+
+gen_without_corners(win_get_region_noframe_local);
 
 void win_get_region_frame_local(const struct managed_win *w, region_t *res) {
 	const margin_t extents = win_calc_frame_extents(w);
